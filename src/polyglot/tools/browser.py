@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 from .base import Tool, ToolRegistry
 
@@ -38,7 +37,7 @@ class _BrowserHandle:
         self._playwright = None
 
 
-_handle: Optional[_BrowserHandle] = None
+_handle: _BrowserHandle | None = None
 
 
 def _h() -> _BrowserHandle:

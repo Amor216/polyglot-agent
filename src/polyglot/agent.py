@@ -1,5 +1,5 @@
 import os
-from typing import Iterator
+from collections.abc import Iterator
 
 import anthropic
 
@@ -47,9 +47,7 @@ class Agent:
             )
             self.messages.append({"role": "assistant", "content": [b.model_dump() for b in resp.content]})
 
-            text_parts = [b.text for b in resp.content if b.type == "text" and b.text]
-            for t in text_parts:
-                yield t
+            yield from (b.text for b in resp.content if b.type == "text" and b.text)
 
             if resp.stop_reason != "tool_use":
                 return

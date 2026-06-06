@@ -67,7 +67,7 @@ class Agent:
                 if block.type != "tool_use":
                     continue
                 tool_calls += 1
-                yield f"\n  → {block.name}({_brief(block.input)})\n"
+                yield f"\n  [{block.name}] {_brief(block.input)}\n"
                 result, is_error = self._run(block.name, block.input)
                 tool_results.append({
                     "type": "tool_result",
@@ -92,7 +92,7 @@ class Agent:
 
 
 def _serialize(block) -> dict:
-    """Strip SDK-internal fields (parsed_output, etc.) that the API rejects on resend."""
+    # model_dump() includes SDK-internal fields like parsed_output that the API rejects on resend.
     if block.type == "text":
         return {"type": "text", "text": block.text}
     if block.type == "tool_use":

@@ -26,7 +26,7 @@ def main() -> None:
     reg = build_registry(yolo=yolo)
     agent = Agent(reg)
 
-    console.print("[bold]polyglot[/bold] · sonnet 4.5 · tools: " + ", ".join(reg.names()))
+    console.print("[bold]polyglot[/bold] (sonnet 4.5) tools: " + ", ".join(reg.names()))
     if yolo:
         console.print("[yellow]yolo mode: destructive commands run without confirmation[/yellow]")
     console.print("[dim]ctrl-d or :q to exit, :reset to clear history[/dim]\n")

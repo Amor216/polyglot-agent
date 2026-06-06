@@ -84,7 +84,7 @@ def test_tool_use_then_text():
     )
     out = "".join(agent.chat("say hi"))
     assert "got hello" in out
-    assert "→ echo" in out
+    assert "[echo]" in out
     assert agent.total_in == 20  # both calls summed
     assert agent.client.messages.stream.call_count == 2
 

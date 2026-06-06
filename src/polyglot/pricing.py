@@ -21,7 +21,7 @@ def format_usage(model: str, input_tokens: int, output_tokens: int, tool_calls: 
         parts.append(f"${c:.4f}")
     if tool_calls:
         parts.append(f"{tool_calls} tool call{'s' if tool_calls != 1 else ''}")
-    return " · ".join(parts)
+    return ", ".join(parts)
 
 
 def _h(n: int) -> str:

@@ -16,9 +16,8 @@ _SHUTDOWN = object()
 
 
 class _BrowserWorker:
-    """Runs Playwright sync in its own thread so it never shares an event loop
-    with prompt_toolkit. Browser tool calls enqueue closures; the worker
-    executes them on the page and returns results via Future."""
+    # Playwright lives on its own thread so its asyncio loop never collides
+    # with prompt_toolkit's. Tools submit closures, the worker runs them.
 
     def __init__(self) -> None:
         self._queue: queue.Queue = queue.Queue()

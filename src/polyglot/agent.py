@@ -56,7 +56,7 @@ class Agent:
 
             self.total_in += resp.usage.input_tokens
             self.total_out += resp.usage.output_tokens
-            self.messages.append({"role": "assistant", "content": [b.model_dump() for b in resp.content]})
+            self.messages.append({"role": "assistant", "content": [_serialize(b) for b in resp.content]})
 
             if resp.stop_reason != "tool_use":
                 yield f"\n[dim]{format_usage(self.model, self.total_in, self.total_out, tool_calls)}[/dim]\n"
@@ -89,6 +89,15 @@ class Agent:
             msg = f"{type(e).__name__}: {e}"
             audit.record(name, args, "error", error=msg)
             return msg, True
+
+
+def _serialize(block) -> dict:
+    """Strip SDK-internal fields (parsed_output, etc.) that the API rejects on resend."""
+    if block.type == "text":
+        return {"type": "text", "text": block.text}
+    if block.type == "tool_use":
+        return {"type": "tool_use", "id": block.id, "name": block.name, "input": block.input}
+    return block.model_dump()
 
 
 def _brief(d: dict) -> str:

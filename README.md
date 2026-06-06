@@ -1,0 +1,92 @@
+# polyglot
+
+A terminal-resident LLM agent that operates on your machine through tool-use. Two tool domains: system (files, shell, apps) and browser (Playwright, headed). Written against the Anthropic SDK directly, no agent framework in between.
+
+## What it does
+
+Type intent, the agent picks tools, executes, answers. Example sessions:
+
+```
+> finde die drei größten dateien in meinem downloads ordner
+> öffne hackernews und gib mir die top 3 titel
+> erstelle einen ordner notes mit drei leeren markdown files
+> screenshot von wikipedia.org speichern unter ./shots/wiki.png
+```
+
+## Install
+
+Requires Python 3.10+.
+
+```bash
+uv sync
+uv run playwright install chromium
+cp .env.example .env  # add your ANTHROPIC_API_KEY
+```
+
+## Run
+
+```bash
+uv run polyglot
+# or, skipping the confirmation prompt on destructive commands (don't):
+uv run polyglot --yolo
+```
+
+In-session commands:
+
+| Command | Effect |
+|---|---|
+| `:reset` | Clear conversation history |
+| `:q` / Ctrl-D | Exit |
+
+## Architecture
+
+```
+CLI (prompt_toolkit, rich)
+    │
+    ▼
+Agent  ──  Anthropic SDK · tool-use loop · max 12 steps
+    │
+    ├── tools/system.py    read_file · list_dir · run_command · open_app
+    └── tools/browser.py   browser_navigate · _extract · _click · _type · _screenshot
+            │
+            ▼
+   safety.py  ──  allowlist · destructive-op confirmation · default-deny
+   audit.py   ──  JSONL log at ~/.polyglot/audit.log
+```
+
+### Safety
+
+Three layers:
+
+1. **Allowlist** for shell commands. Anything not on the allowlist is rejected. The destructive set (`rm`, `git push`, `shutdown`, …) is recognized explicitly and requires confirmation.
+2. **Interactive confirmation** for destructive commands, unless `--yolo`.
+3. **Audit log** at `~/.polyglot/audit.log` (or `$POLYGLOT_AUDIT_DIR`) — one JSON line per tool invocation, including inputs and outcomes.
+
+Adjust `safety.py` to fit your environment. Default is conservative.
+
+## Layout
+
+```
+src/polyglot/
+  agent.py        tool-use loop
+  cli.py          REPL
+  safety.py       allowlist + classification
+  audit.py        JSONL writer
+  tools/
+    base.py       Tool, ToolRegistry
+    system.py     4 system tools
+    browser.py    5 browser tools (lazy Playwright singleton)
+```
+
+About 450 lines of Python. The browser is launched lazily on first browser-tool call and shut down on exit.
+
+## Notes
+
+- Model defaults to `claude-sonnet-4-5`. Override via `POLYGLOT_MODEL`.
+- Browser runs **headed** so you can watch the agent work. Flip to headless in `browser.py` if you want it for CI.
+- Tool loop is capped at 12 steps to avoid runaway cost.
+- Output of `run_command` is truncated at 8K chars. Files at 200K bytes. Browser text at 50K chars.
+
+## License
+
+MIT.

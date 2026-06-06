@@ -2,6 +2,10 @@
 
 A terminal-resident LLM agent that operates on your machine through tool-use. Two tool domains: system (files, shell, apps) and browser (Playwright, headed). Written against the Anthropic SDK directly, no agent framework in between.
 
+Streams responses as they arrive, prints token usage and dollar cost at the end of each turn, and keeps Playwright isolated in its own worker thread so the browser doesn't fight the REPL's event loop.
+
+![demo](docs/demo.gif)
+
 ## What it does
 
 Type intent, the agent picks tools, executes, answers. Example sessions:
@@ -44,15 +48,20 @@ In-session commands:
 CLI (prompt_toolkit, rich)
     │
     ▼
-Agent  ──  Anthropic SDK · tool-use loop · max 12 steps
+Agent  ──  Anthropic SDK · streaming · tool-use loop · max 12 steps
     │
     ├── tools/system.py    read_file · list_dir · run_command · open_app
+    │
     └── tools/browser.py   browser_navigate · _extract · _click · _type · _screenshot
             │
-            ▼
-   safety.py  ──  allowlist · destructive-op confirmation · default-deny
-   audit.py   ──  JSONL log at ~/.polyglot/audit.log
+            └── worker thread ── Playwright (sync API, headed Chromium)
+
+  safety.py   ── allowlist · destructive-op confirmation · default-deny
+  audit.py    ── JSONL log at ~/.polyglot/audit.log
+  pricing.py  ── per-model token cost
 ```
+
+Why the worker thread: Playwright's sync API and `prompt_toolkit` both touch asyncio. On Python 3.12 their loops conflict. Isolating Playwright in a daemon thread fixes it and is the right pattern for any sync-API library you don't want polluting the main loop.
 
 ### Safety
 
@@ -78,7 +87,7 @@ src/polyglot/
     browser.py    5 browser tools (lazy Playwright singleton)
 ```
 
-About 450 lines of Python. The browser is launched lazily on first browser-tool call and shut down on exit.
+About 550 lines of Python. The browser is launched lazily on first browser-tool call and shut down on exit. Every turn ends with a dim line like `12.4k in · 1.8k out · $0.072 · 4 tool calls`.
 
 ## Notes
 

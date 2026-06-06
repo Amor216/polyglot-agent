@@ -4,6 +4,7 @@ from collections.abc import Iterator
 import anthropic
 
 from . import audit
+from .pricing import format_usage
 from .tools import ToolRegistry
 
 DEFAULT_MODEL = os.environ.get("POLYGLOT_MODEL", "claude-sonnet-4-5")
@@ -30,32 +31,42 @@ class Agent:
         self.model = model
         self.max_steps = max_steps
         self.messages: list[dict] = []
+        self.total_in = 0
+        self.total_out = 0
 
     def reset(self) -> None:
         self.messages = []
+        self.total_in = 0
+        self.total_out = 0
 
     def chat(self, user_input: str) -> Iterator[str]:
         self.messages.append({"role": "user", "content": user_input})
+        tool_calls = 0
 
         for _ in range(self.max_steps):
-            resp = self.client.messages.create(
+            with self.client.messages.stream(
                 model=self.model,
                 max_tokens=4096,
                 system=SYSTEM_PROMPT,
                 tools=self.tools.schemas(),
                 messages=self.messages,
-            )
+            ) as stream:
+                yield from stream.text_stream
+                resp = stream.get_final_message()
+
+            self.total_in += resp.usage.input_tokens
+            self.total_out += resp.usage.output_tokens
             self.messages.append({"role": "assistant", "content": [b.model_dump() for b in resp.content]})
 
-            yield from (b.text for b in resp.content if b.type == "text" and b.text)
-
             if resp.stop_reason != "tool_use":
+                yield f"\n[dim]{format_usage(self.model, self.total_in, self.total_out, tool_calls)}[/dim]\n"
                 return
 
             tool_results = []
             for block in resp.content:
                 if block.type != "tool_use":
                     continue
+                tool_calls += 1
                 yield f"\n  → {block.name}({_brief(block.input)})\n"
                 result, is_error = self._run(block.name, block.input)
                 tool_results.append({

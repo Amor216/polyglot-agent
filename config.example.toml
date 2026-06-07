@@ -14,3 +14,16 @@
 
 # Command prefixes that are always blocked, even if they would otherwise match the allowlist.
 # blocked = ["sudo", "su -"]
+
+# External MCP servers exposed as tools. Each server contributes one tool per remote tool,
+# named "<server>__<remote-name>" so collisions across servers are impossible.
+# [[mcp.servers]]
+# name = "db"
+# command = "uvx"
+# args = ["--from", "git+https://github.com/Amor216/db-mcp-server", "db-mcp"]
+#
+# [[mcp.servers]]
+# name = "weather"
+# command = "node"
+# args = ["/path/to/weather-mcp/index.js"]
+# env = { API_KEY = "..." }

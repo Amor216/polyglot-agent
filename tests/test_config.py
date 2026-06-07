@@ -51,3 +51,38 @@ def test_env_override(monkeypatch, tmp_path: Path):
     monkeypatch.setenv("POLYGLOT_CONFIG", str(p))
     c = load()
     assert c.disabled_tools == {"x"}
+
+
+def test_load_parses_mcp_servers(tmp_path: Path):
+    p = tmp_path / "config.toml"
+    p.write_text(
+        '[[mcp.servers]]\n'
+        'name = "db"\n'
+        'command = "uvx"\n'
+        'args = ["--from", "git+https://example", "db-mcp"]\n'
+        '\n'
+        '[[mcp.servers]]\n'
+        'name = "weather"\n'
+        'command = "node"\n'
+        'args = ["index.js"]\n'
+        'env = { API_KEY = "xyz" }\n',
+        encoding="utf-8",
+    )
+    c = load(p)
+    assert len(c.mcp_servers) == 2
+    db, weather = c.mcp_servers
+    assert db.name == "db"
+    assert db.command == "uvx"
+    assert db.args == ("--from", "git+https://example", "db-mcp")
+    assert weather.env == {"API_KEY": "xyz"}
+
+
+def test_mcp_server_missing_fields_skipped(tmp_path: Path):
+    p = tmp_path / "c.toml"
+    p.write_text(
+        '[[mcp.servers]]\nname = "ok"\ncommand = "x"\n\n[[mcp.servers]]\nname = "no_command"\n',
+        encoding="utf-8",
+    )
+    c = load(p)
+    assert len(c.mcp_servers) == 1
+    assert c.mcp_servers[0].name == "ok"

@@ -3,6 +3,8 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .tools.mcp import MCPServerSpec
+
 
 @dataclass(frozen=True)
 class Config:
@@ -10,6 +12,7 @@ class Config:
     disabled_tools: set[str] = field(default_factory=set)
     extra_allowed_commands: tuple[str, ...] = ()
     extra_blocked_commands: tuple[str, ...] = ()
+    mcp_servers: tuple[MCPServerSpec, ...] = ()
 
     def is_tool_enabled(self, name: str) -> bool:
         if name in self.disabled_tools:
@@ -35,9 +38,29 @@ def load(path: Path | None = None) -> Config:
     enabled = tools.get("enabled")
     disabled = tools.get("disabled") or []
     commands = data.get("commands") or {}
+    mcp_section = (data.get("mcp") or {}).get("servers") or []
     return Config(
         enabled_tools=set(enabled) if isinstance(enabled, list) else None,
         disabled_tools=set(disabled),
         extra_allowed_commands=tuple(commands.get("allowed") or ()),
         extra_blocked_commands=tuple(commands.get("blocked") or ()),
+        mcp_servers=tuple(_parse_mcp_servers(mcp_section)),
     )
+
+
+def _parse_mcp_servers(items: list[dict]) -> list[MCPServerSpec]:
+    out: list[MCPServerSpec] = []
+    for entry in items:
+        if not isinstance(entry, dict):
+            continue
+        name = entry.get("name")
+        command = entry.get("command")
+        if not name or not command:
+            continue
+        out.append(MCPServerSpec(
+            name=str(name),
+            command=str(command),
+            args=tuple(entry.get("args") or ()),
+            env=dict(entry.get("env") or {}) or None,
+        ))
+    return out

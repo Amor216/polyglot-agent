@@ -42,6 +42,8 @@ Optional `~/.polyglot/config.toml` (or `POLYGLOT_CONFIG=path`) restricts which t
 
 Every tool call is appended to `~/.polyglot/audit.log` (one JSON object per line) for replay and debug. Override the directory with `POLYGLOT_AUDIT_DIR`.
 
+External MCP servers can be plugged in through `[[mcp.servers]]` blocks in the config. polyglot launches each over stdio at startup and re-exports every remote tool as `<server-name>__<remote-tool>`. Example: connect `db-mcp-server` and the agent can search German train stations directly from this terminal.
+
 In-session commands:
 
 | Command | Effect |

@@ -13,6 +13,7 @@ from . import sessions
 from .agent import Agent, ToolLoopExhausted
 from .tools import ToolRegistry
 from .tools.browser import register_browser_tools, shutdown_browser
+from .tools.mcp import register_mcp_servers, shutdown_mcp
 from .tools.system import register_system_tools
 
 console = Console()
@@ -22,6 +23,11 @@ def build_registry(yolo: bool, cfg: config_mod.Config) -> ToolRegistry:
     reg = ToolRegistry()
     register_system_tools(reg, yolo=yolo, config=cfg)
     register_browser_tools(reg, config=cfg)
+    if cfg.mcp_servers:
+        try:
+            register_mcp_servers(reg, list(cfg.mcp_servers))
+        except Exception as exc:
+            console.print(f"[yellow]mcp connect failed: {exc}[/yellow]")
     return reg
 
 
@@ -93,6 +99,7 @@ def main() -> None:
             console.print(f"\n[red]{type(e).__name__}: {e}[/red]")
 
     shutdown_browser()
+    shutdown_mcp()
     console.print("[dim]bye[/dim]")
 
 

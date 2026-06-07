@@ -1,0 +1,16 @@
+# Place this file at ~/.polyglot/config.toml (or set POLYGLOT_CONFIG to its path).
+# Every key below is optional.
+
+[tools]
+# If 'enabled' is set, ONLY the listed tools are registered. Omit to register all.
+# enabled = ["read_file", "list_dir", "run_command"]
+
+# 'disabled' always wins over 'enabled'.
+# disabled = ["browser_screenshot"]
+
+[commands]
+# Extra command prefixes treated as safe in addition to the built-in allowlist.
+# allowed = ["docker ps", "docker inspect", "kubectl get"]
+
+# Command prefixes that are always blocked, even if they would otherwise match the allowlist.
+# blocked = ["sudo", "su -"]

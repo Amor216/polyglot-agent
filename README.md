@@ -38,6 +38,8 @@ uv run polyglot --yolo       # skip the confirmation prompt on destructive comma
 
 Sessions auto-save after every turn to `~/.polyglot/sessions/<timestamp>.json` (override with `POLYGLOT_HOME`).
 
+Optional `~/.polyglot/config.toml` (or `POLYGLOT_CONFIG=path`) restricts which tools register and which shell commands are safe — see `config.example.toml`.
+
 In-session commands:
 
 | Command | Effect |

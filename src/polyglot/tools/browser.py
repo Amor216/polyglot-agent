@@ -7,6 +7,7 @@ from concurrent.futures import Future
 from pathlib import Path
 from typing import Any
 
+from ..config import Config
 from .base import Tool, ToolRegistry
 
 MAX_EXTRACT_CHARS = 50_000
@@ -150,63 +151,69 @@ def _screenshot(args: dict) -> str:
     return _w().submit(do)
 
 
-def register_browser_tools(reg: ToolRegistry) -> None:
-    reg.register(Tool(
-        name="browser_navigate",
-        description="Open a URL in the headed browser. Returns final URL and page title.",
-        input_schema={
-            "type": "object",
-            "properties": {"url": {"type": "string"}},
-            "required": ["url"],
-        },
-        handler=_navigate,
-    ))
-    reg.register(Tool(
-        name="browser_extract",
-        description=(
-            "Return visible text of the current page or, if selector is given, of matched elements. "
-            "Truncates at 50K chars."
+def register_browser_tools(reg: ToolRegistry, config: Config | None = None) -> None:
+    cfg = config or Config()
+    candidates: list[Tool] = [
+        Tool(
+            name="browser_navigate",
+            description="Open a URL in the headed browser. Returns final URL and page title.",
+            input_schema={
+                "type": "object",
+                "properties": {"url": {"type": "string"}},
+                "required": ["url"],
+            },
+            handler=_navigate,
         ),
-        input_schema={
-            "type": "object",
-            "properties": {"selector": {"type": "string", "description": "Optional CSS selector"}},
-        },
-        handler=_extract,
-    ))
-    reg.register(Tool(
-        name="browser_click",
-        description="Click the first element matching a CSS selector.",
-        input_schema={
-            "type": "object",
-            "properties": {"selector": {"type": "string"}},
-            "required": ["selector"],
-        },
-        handler=_click,
-    ))
-    reg.register(Tool(
-        name="browser_type",
-        description="Type text into the first element matching a CSS selector. Optionally press Enter.",
-        input_schema={
-            "type": "object",
-            "properties": {
-                "selector": {"type": "string"},
-                "text": {"type": "string"},
-                "submit": {"type": "boolean", "default": False},
+        Tool(
+            name="browser_extract",
+            description=(
+                "Return visible text of the current page or, if selector is given, of matched elements. "
+                "Truncates at 50K chars."
+            ),
+            input_schema={
+                "type": "object",
+                "properties": {"selector": {"type": "string", "description": "Optional CSS selector"}},
             },
-            "required": ["selector", "text"],
-        },
-        handler=_type,
-    ))
-    reg.register(Tool(
-        name="browser_screenshot",
-        description="Save a PNG screenshot of the current page.",
-        input_schema={
-            "type": "object",
-            "properties": {
-                "path": {"type": "string"},
-                "full_page": {"type": "boolean", "default": False},
+            handler=_extract,
+        ),
+        Tool(
+            name="browser_click",
+            description="Click the first element matching a CSS selector.",
+            input_schema={
+                "type": "object",
+                "properties": {"selector": {"type": "string"}},
+                "required": ["selector"],
             },
-            "required": ["path"],
-        },
-        handler=_screenshot,
-    ))
+            handler=_click,
+        ),
+        Tool(
+            name="browser_type",
+            description="Type text into the first element matching a CSS selector. Optionally press Enter.",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "selector": {"type": "string"},
+                    "text": {"type": "string"},
+                    "submit": {"type": "boolean", "default": False},
+                },
+                "required": ["selector", "text"],
+            },
+            handler=_type,
+        ),
+        Tool(
+            name="browser_screenshot",
+            description="Save a PNG screenshot of the current page.",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string"},
+                    "full_page": {"type": "boolean", "default": False},
+                },
+                "required": ["path"],
+            },
+            handler=_screenshot,
+        ),
+    ]
+    for tool in candidates:
+        if cfg.is_tool_enabled(tool.name):
+            reg.register(tool)

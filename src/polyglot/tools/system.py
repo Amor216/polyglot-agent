@@ -6,6 +6,7 @@ import webbrowser
 from datetime import datetime
 from pathlib import Path
 
+from ..config import Config
 from ..safety import classify
 from .base import Tool, ToolRegistry
 
@@ -64,13 +65,13 @@ def _human_size(n: int) -> str:
     return f"{n:.0f}P"
 
 
-def _make_run(yolo: bool):
+def _make_run(yolo: bool, config: Config):
     def run(args: dict) -> str:
         cmd = args["cmd"]
         cwd = args.get("cwd") or "."
-        cls = classify(cmd)
+        cls = classify(cmd, config.extra_allowed_commands, config.extra_blocked_commands)
         if cls == "blocked":
-            return f"blocked by allowlist: {cmd!r}. add it to SAFE_PREFIXES if intended."
+            return f"blocked by allowlist: {cmd!r}. add it to SAFE_PREFIXES or config.toml if intended."
         if cls == "destructive" and not yolo:
             if not _confirm_destructive(cmd):
                 return f"user declined: {cmd!r}"
@@ -115,53 +116,60 @@ def _open_app(args: dict) -> str:
     return f"opened: {target}"
 
 
-def register_system_tools(reg: ToolRegistry, yolo: bool = False) -> None:
-    reg.register(Tool(
-        name="read_file",
-        description="Read text content of a file. Returns up to 200KB.",
-        input_schema={
-            "type": "object",
-            "properties": {"path": {"type": "string"}},
-            "required": ["path"],
-        },
-        handler=_read_file,
-    ))
-    reg.register(Tool(
-        name="list_dir",
-        description="List entries of a directory. Non-recursive. Optional glob pattern.",
-        input_schema={
-            "type": "object",
-            "properties": {
-                "path": {"type": "string"},
-                "pattern": {"type": "string", "description": "Optional glob, e.g. *.py"},
+def register_system_tools(reg: ToolRegistry, yolo: bool = False,
+                          config: Config | None = None) -> None:
+    cfg = config or Config()
+    candidates: list[Tool] = [
+        Tool(
+            name="read_file",
+            description="Read text content of a file. Returns up to 200KB.",
+            input_schema={
+                "type": "object",
+                "properties": {"path": {"type": "string"}},
+                "required": ["path"],
             },
-            "required": ["path"],
-        },
-        handler=_list_dir,
-    ))
-    reg.register(Tool(
-        name="run_command",
-        description=(
-            "Run a shell command. Subject to an allowlist; destructive commands "
-            "require interactive confirmation unless yolo mode is on. Returns exit code and output."
+            handler=_read_file,
         ),
-        input_schema={
-            "type": "object",
-            "properties": {
-                "cmd": {"type": "string"},
-                "cwd": {"type": "string", "description": "Working directory, defaults to ."},
+        Tool(
+            name="list_dir",
+            description="List entries of a directory. Non-recursive. Optional glob pattern.",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string"},
+                    "pattern": {"type": "string", "description": "Optional glob, e.g. *.py"},
+                },
+                "required": ["path"],
             },
-            "required": ["cmd"],
-        },
-        handler=_make_run(yolo=yolo),
-    ))
-    reg.register(Tool(
-        name="open_app",
-        description="Open an application, file, or URL via the OS default handler.",
-        input_schema={
-            "type": "object",
-            "properties": {"target": {"type": "string"}},
-            "required": ["target"],
-        },
-        handler=_open_app,
-    ))
+            handler=_list_dir,
+        ),
+        Tool(
+            name="run_command",
+            description=(
+                "Run a shell command. Subject to an allowlist; destructive commands "
+                "require interactive confirmation unless yolo mode is on. Returns exit code and output."
+            ),
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "cmd": {"type": "string"},
+                    "cwd": {"type": "string", "description": "Working directory, defaults to ."},
+                },
+                "required": ["cmd"],
+            },
+            handler=_make_run(yolo=yolo, config=cfg),
+        ),
+        Tool(
+            name="open_app",
+            description="Open an application, file, or URL via the OS default handler.",
+            input_schema={
+                "type": "object",
+                "properties": {"target": {"type": "string"}},
+                "required": ["target"],
+            },
+            handler=_open_app,
+        ),
+    ]
+    for tool in candidates:
+        if cfg.is_tool_enabled(tool.name):
+            reg.register(tool)

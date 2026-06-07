@@ -8,6 +8,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.rule import Rule
 
+from . import config as config_mod
 from . import sessions
 from .agent import Agent, ToolLoopExhausted
 from .tools import ToolRegistry
@@ -17,10 +18,10 @@ from .tools.system import register_system_tools
 console = Console()
 
 
-def build_registry(yolo: bool) -> ToolRegistry:
+def build_registry(yolo: bool, cfg: config_mod.Config) -> ToolRegistry:
     reg = ToolRegistry()
-    register_system_tools(reg, yolo=yolo)
-    register_browser_tools(reg)
+    register_system_tools(reg, yolo=yolo, config=cfg)
+    register_browser_tools(reg, config=cfg)
     return reg
 
 
@@ -31,7 +32,8 @@ def main() -> None:
     resume = "--resume" in argv
     markdown = "--markdown" in argv or "--md" in argv
 
-    reg = build_registry(yolo=yolo)
+    cfg = config_mod.load()
+    reg = build_registry(yolo=yolo, cfg=cfg)
     agent = Agent(reg)
 
     session_path = sessions.new_path()

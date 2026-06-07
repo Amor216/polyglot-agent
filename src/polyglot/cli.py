@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory
 from rich.console import Console
+from rich.markdown import Markdown
+from rich.rule import Rule
 
 from . import sessions
 from .agent import Agent, ToolLoopExhausted
@@ -27,6 +29,7 @@ def main() -> None:
     argv = sys.argv[1:]
     yolo = "--yolo" in argv
     resume = "--resume" in argv
+    markdown = "--markdown" in argv or "--md" in argv
 
     reg = build_registry(yolo=yolo)
     agent = Agent(reg)
@@ -45,6 +48,8 @@ def main() -> None:
     console.print("[bold]polyglot[/bold] (sonnet 4.5) tools: " + ", ".join(reg.names()))
     if yolo:
         console.print("[yellow]yolo mode: destructive commands run without confirmation[/yellow]")
+    if markdown:
+        console.print("[dim]markdown rendering enabled[/dim]")
     console.print("[dim]ctrl-d or :q to exit, :reset to clear history, :sessions to list, :save to snapshot now[/dim]\n")
 
     prompt: PromptSession = PromptSession(history=InMemoryHistory())
@@ -77,6 +82,8 @@ def main() -> None:
             for chunk in agent.chat(line):
                 console.print(chunk, end="", soft_wrap=True)
             console.print()
+            if markdown:
+                _render_last_as_markdown(agent.messages)
             sessions.save(session_path, agent.messages, agent.total_in, agent.total_out)
         except ToolLoopExhausted as e:
             console.print(f"\n[red]{e}[/red]")
@@ -106,6 +113,21 @@ def _ago(seconds: float) -> str:
     if seconds < 86400:
         return f"{int(seconds / 3600)}h ago"
     return f"{int(seconds / 86400)}d ago"
+
+
+def _render_last_as_markdown(messages: list[dict]) -> None:
+    for msg in reversed(messages):
+        if msg.get("role") != "assistant":
+            continue
+        content = msg.get("content")
+        if not isinstance(content, list):
+            continue
+        text = "".join(b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text")
+        if not text.strip():
+            return
+        console.print(Rule(style="dim"))
+        console.print(Markdown(text))
+        return
 
 
 def _first_user(messages: list[dict]) -> str:

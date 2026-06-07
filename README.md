@@ -31,8 +31,9 @@ cp .env.example .env  # add your ANTHROPIC_API_KEY
 
 ```bash
 uv run polyglot
-uv run polyglot --resume   # pick up the most recent session
-uv run polyglot --yolo     # skip the confirmation prompt on destructive commands (don't)
+uv run polyglot --resume     # pick up the most recent session
+uv run polyglot --markdown   # also render each assistant reply as Markdown after streaming
+uv run polyglot --yolo       # skip the confirmation prompt on destructive commands (don't)
 ```
 
 Sessions auto-save after every turn to `~/.polyglot/sessions/<timestamp>.json` (override with `POLYGLOT_HOME`).

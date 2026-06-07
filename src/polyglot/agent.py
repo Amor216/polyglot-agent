@@ -39,6 +39,11 @@ class Agent:
         self.total_in = 0
         self.total_out = 0
 
+    def load_state(self, messages: list[dict], total_in: int, total_out: int) -> None:
+        self.messages = list(messages)
+        self.total_in = total_in
+        self.total_out = total_out
+
     def chat(self, user_input: str) -> Iterator[str]:
         self.messages.append({"role": "user", "content": user_input})
         tool_calls = 0

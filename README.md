@@ -31,15 +31,19 @@ cp .env.example .env  # add your ANTHROPIC_API_KEY
 
 ```bash
 uv run polyglot
-# or, skipping the confirmation prompt on destructive commands (don't):
-uv run polyglot --yolo
+uv run polyglot --resume   # pick up the most recent session
+uv run polyglot --yolo     # skip the confirmation prompt on destructive commands (don't)
 ```
+
+Sessions auto-save after every turn to `~/.polyglot/sessions/<timestamp>.json` (override with `POLYGLOT_HOME`).
 
 In-session commands:
 
 | Command | Effect |
 |---|---|
-| `:reset` | Clear conversation history |
+| `:reset` | Clear conversation history; future turns save to a new session |
+| `:save` | Snapshot the current session now |
+| `:sessions` | List the 10 most recent sessions |
 | `:q` / Ctrl-D | Exit |
 
 ## Architecture

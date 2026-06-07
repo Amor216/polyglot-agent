@@ -40,6 +40,8 @@ Sessions auto-save after every turn to `~/.polyglot/sessions/<timestamp>.json` (
 
 Optional `~/.polyglot/config.toml` (or `POLYGLOT_CONFIG=path`) restricts which tools register and which shell commands are safe — see `config.example.toml`.
 
+Every tool call is appended to `~/.polyglot/audit.log` (one JSON object per line) for replay and debug. Override the directory with `POLYGLOT_AUDIT_DIR`.
+
 In-session commands:
 
 | Command | Effect |
